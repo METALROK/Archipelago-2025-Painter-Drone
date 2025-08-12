@@ -56,8 +56,5 @@ if current_pose:
         print(x_coords[n+1], z_coords[n+1])
         rospy.sleep(10)
 
-
-
-
 # Посадка
 land()
