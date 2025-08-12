@@ -4,18 +4,13 @@ from clover import srv
 from std_srvs.srv import Trigger
 from geometry_msgs.msg import PoseStamped
 import time
+import math
 import pigpio
-import coordinateGeneration
-from coordinateGeneration import x_coords, z_coords
+import json
 
 #Загрузка координат
-
-## Настройка сервы
-# pi = pigpio.pi()
-# pi.set_mode(21,pigpio.OUTPUT)
-# pi.set_servo_pulsewidth(21, 1000)#1000 - "положение" сервы
-# time.sleep(2)
-# pi.set_servo_pulsewidth(21, 2000)#2000 - "положение" сервы
+with open('coordinates.json', 'r') as f:
+ coordinates = json.load(f)
 
 rospy.init_node('aruco_navigation')
 
@@ -42,12 +37,12 @@ while current_pose is None and not rospy.is_shutdown():
 if current_pose:
     rospy.loginfo(f"Global position: x={current_pose.position.x}, y={current_pose.position.y}")
 
-    # Основная полетная логика
+    # Основная полетная логика для одного дрона
     pi = pigpio.pi()
     pi.set_mode(21, pigpio.OUTPUT)
 
-    navigate(x=x_coords[0], y=0, z=z_coords[0], frame_id='aruco_map')
-    rospy.sleep(10)
+    set_position(x=coordinates[0][0], y=0, z=coordinates[0][1], frame_id='aruco_map')
+    rospy.sleep(5)
     pi.set_servo_pulsewidth(21, 1000)
     rospy.sleep(2)
 
