@@ -9,8 +9,13 @@ import pigpio
 import json
 
 #Загрузка координат
-with open('coordinates.json', 'r') as f:
- coordinates = json.load(f)
+def load_coordinates(json_file):
+    with open(json_file, 'r') as f:
+        data = json.load(f)
+    return [[point[0], point[1]] for point in data]
+
+coordinates = load_coordinates('coordinates.json')
+rospy.loginfo(f"Загружено {len(coordinates)} точек")
 
 rospy.init_node('aruco_navigation')
 
@@ -18,6 +23,26 @@ rospy.init_node('aruco_navigation')
 get_telemetry = rospy.ServiceProxy('get_telemetry', srv.GetTelemetry)
 navigate = rospy.ServiceProxy('navigate', srv.Navigate)
 land = rospy.ServiceProxy('land', Trigger)
+
+def wait_for_position(target_x, target_z, timeout=5.0, tolerance=0.1):
+    start_time = rospy.get_time()
+    while not rospy.is_shutdown():
+        telem = get_telemetry(frame_id='aruco_map')
+
+        distance = math.sqrt(
+            (telem.x - target_x) ** 2 +
+            (telem.z - target_z) ** 2
+        )
+
+        if distance < tolerance:
+            rospy.loginfo(f"Цель Достигнута, X={telem.x:.2f}, Z={telem.z:.2f}")
+            return True
+        if rospy.get_time() - start_time > timeout:
+            rospy.logwarn(f"Точка не достигнута, текущая позиция: X={telem.x:.2f}, Z={telem.z:.2f}")
+            return False
+        rospy.sleep(0.2)
+
+
 
 # Изначальный взлет
 navigate(x=0, y=0, z=1.5, frame_id='body', auto_arm=True)
@@ -41,15 +66,19 @@ if current_pose:
     pi = pigpio.pi()
     pi.set_mode(21, pigpio.OUTPUT)
 
-    set_position(x=coordinates[0][0], y=0, z=coordinates[0][1], frame_id='aruco_map')
-    rospy.sleep(5)
-    pi.set_servo_pulsewidth(21, 1000)
-    rospy.sleep(2)
+    for x, z in coordinates:
+        rospy.loginfo(f"Летим к точке X={x}, Z={z}")
+        set_position(x=x, y=0, z=z, frame_id='aruco_map')
 
-    for n in range(len(x_coords)-2):
-        navigate(x=x_coords[n+1], y=0, z=z_coords[n+1], frame_id='aruco_map')
-        print(x_coords[n+1], z_coords[n+1])
-        rospy.sleep(10)
+        if wait_for_position(x, z):
+            pi.set_servo_pulsewidth(20, 1000)
+            rospy.loginfo("Серва активирована")
+            rospy.sleep(0.2)
+            pi.set_servo_pulsewidth(20, 2000)
+            rospy.loginfo("Серва деактивирована")
+        else:
+            rospy.logerr("Ошибка навигации! Стопаю")
+            break
 
 # Посадка
 land()
