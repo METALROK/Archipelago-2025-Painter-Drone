@@ -2,25 +2,23 @@ import cv2
 import numpy as np
 import json
 
-#Версия для одного дрона
+def coordinateGeneration(image_name_lowres):
+    #Версия для одного дрона
 
-image = cv2.imread("indane_lowres.jpg", cv2.IMREAD_GRAYSCALE)
-black_threshold = 10
+    image = cv2.imread(image_name_lowres, cv2.IMREAD_GRAYSCALE)
+    black_threshold = 10
 
-black_pixels_single = np.argwhere(image <= black_threshold)
-print(np.array2string(black_pixels_single, separator=', '))
+    black_pixels_single = np.argwhere(image <= black_threshold)
+    print(np.array2string(black_pixels_single, separator=', '))
 
-with open('coordinates.json', 'w') as f:
-    json.dump(black_pixels_single.tolist(), f, indent=2)
+    with open('coordinates.json', 'w') as f:
+        json.dump(black_pixels_single.tolist(), f, indent=2)
+
+if __name__ == '__main__':
+    coordinateGeneration(image_name_lowres)
 
 
-# z_coords_single = black_pixels_single[:, 0]
-# x_coords_single = black_pixels_single[:, 1]
-#
-# print('x values: ', x_coords_single)
-# print('z values: ', z_coords_single)
-
-# #Версия для четырех дронов
+# #Версия для четырех дронов(херня т.к. не JSON)
 # image1 = cv2.imread("indane_11.jpg", cv2.IMREAD_GRAYSCALE)
 # image2 = cv2.imread("indane_12.jpg", cv2.IMREAD_GRAYSCALE)
 # image3 = cv2.imread("indane_21.jpg", cv2.IMREAD_GRAYSCALE)
